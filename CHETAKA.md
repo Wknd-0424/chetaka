@@ -1,451 +1,287 @@
-# CHETAKA: Real-Time AI Scam Detection Shield
-## "The Alert One" / "One Who Warns"
+# Chetaka — Design Document
+## "The One Who Warns"
+
+On-device scam shield for the iQOO Hackathon 2026, Hyderabad City Battle (Sept 26-27).
+The pitch lives in [APPLICATION.md](APPLICATION.md). This file is the build blueprint:
+architecture, components, screens, risks, and the event-day plan.
+
+> **Build rule:** all app code is written during the 30-hour event window. This repository holds
+> design documents only until the event starts.
 
 ---
 
-## ONE-LINE PITCH
-On-device AI guardian. Listens to phone calls real-time, detects scam patterns mid-call via multi-signal fusion (audio + urgency + voice cloning + behavioral biometrics), warns via multi-modal alerts (haptic + visual + audio whisper + LED) BEFORE user shares OTP or money. Zero audio to cloud.
+## 1. Core idea in one paragraph
+
+Scams move along a path: an unknown call creates panic, then the victim opens a payment app and
+sends money. Chetaka watches that path on the phone. During the call it listens (on speaker),
+transcribes on-device, and fires an alert when scam language appears. After the call it
+remembers what happened, and if a UPI or banking app opens soon after a suspicious or long
+unknown call, it shows a pause screen before any money moves. A trusted family member can be
+alerted at critical risk. Nothing leaves the device.
 
 ---
 
-## INSPIRATION
-Builds on Kavach (iQOO Hackathon 2026 Bengaluru, 2nd Runner-Up, Student Track) — proved scam detection wins. Kavach: Audio → Whisper Tiny (STT) → Text Pattern Matching → Risk Scoring → Visual/Haptic Alerts.
+## 2. User flows
 
-Chetaka: single-signal (text patterns) to multi-signal fusion (audio + urgency + voice cloning + behavioral). 12 new features incl. Family Shield, AI voice cloning detection, offline-first.
+### Flow A — scam caught during the call (speaker on)
 
----
+1. Unknown number calls. Call-state listener fires.
+2. Chetaka shows a floating bubble: "Unknown caller. Tap speaker to let Chetaka listen."
+3. User taps speaker. Listening service starts.
+4. Transcript chunks are scored continuously. The risk meter rises.
+5. Risk reaches the alert threshold. Full-screen red alert plus haptics, naming the scam type
+   and the reason.
+6. Call ends. Session saved with score, duration, and matched phrases.
 
-## THE PROBLEM
-- India lost ₹1,200+ crore to UPI scams in 2025
-- 68% of Indians get scam calls weekly
-- AI voice cloning scams up 700% in 2025 (Bank of England warning)
-- Elderly, rural users most vulnerable (61% medication non-adherence, targeted by scammers)
-- Existing solutions reactive (report after fraud), not preventive
-- 315M Indians with hypertension + 101M with diabetes (ICMR-INDIAB) primary targets
+### Flow B — scam caught after the call (speaker off)
 
----
+1. Unknown number calls. The user never taps speaker, so no transcript exists.
+2. Call ends. Chetaka records duration and unknown-number status.
+3. Within 15 minutes, the user opens a UPI or banking app.
+4. Chetaka shows a 30-second pause screen with the call summary and three actions: continue,
+   call family, cancel.
+5. If risk is critical, the family member is alerted.
 
-## THE SOLUTION
-Listen to calls (speakerphone), transcribe real-time on-device (Whisper Tiny + Phi-3 Mini + Custom CNN), detect scams via multi-signal fusion (audio patterns + urgency + voice cloning + behavioral biometrics), alert DURING call before user shares sensitive info.
+### Flow C — family alert
 
----
-
-## COMPLETE SYSTEM ARCHITECTURE
-
-### HIGH-LEVEL ARCHITECTURE
-
-```text
-ANDROID APP (On-Device, Privacy-First)
-
-MULTI-MODAL INPUT LAYER
-  Microphone (live audio) | Camera (QR scanning) | Touch/Keyboard (behavioral)
-        |
-        v
-ON-DEVICE AI ENGINE
-  Whisper Tiny (STT)
-    - Real-time transcription (Hindi + English)
-    - ~40MB model, runs on Snapdragon NPU
-  Phi-3 Mini 3.8B (Urgency/Context)
-    - Analyzes transcription for urgency tactics
-    - Detects pressure: "within 5 minutes", "immediately"
-    - ~2GB Q4 quantized, on-device inference
-  Custom CNN (Voice Cloning Detection)
-    - Spectral analysis for synthetic voice artifacts
-    - Breathing pattern detection
-    - Frequency spectrum anomaly detection
-  Custom Audio Classifier (Keyword Spotting)
-    - 20+ scam phrases (Hindi + English)
-    - Real-time detection (<100ms latency)
-        |
-        v
-MULTI-SIGNAL FUSION LAYER
-  Risk Score Aggregator:
-    - Audio patterns (0-40 points)
-    - Urgency detection (0-30 points)
-    - Voice cloning score (0-20 points)
-    - Behavioral biometrics (0-10 points)
-    = Total Risk Score (0-100)
-        |
-        v
-MULTI-MODAL ALERT SYSTEM
-  Haptic: short vibration = low risk (30-50), long vibration = high risk (70-100)
-  Visual Overlay: red banner "UPI SCAM DETECTED" + scam type + confidence score
-  Audio Whisper: quiet voice "Warning: This call shows scam patterns"
-  LED Indicator: red LED blinks during suspicious call
-  Smartwatch: vibrates wrist discreetly
-
-FAMILY SHIELD MODULE
-  Trusted contacts: add/remove family members (son, daughter, spouse)
-  Real-time alerts: if Risk Score > 80, SMS to trusted contacts
-    "Dad received potential scam call from +91-XXXXX"
-  Emergency button: one-tap call to trusted contact
-  Weekly report: "This week: 3 suspicious calls, 0 OTP shared"
-
-TRAINING MODULE
-  Scenarios: UPI Fraud, KYC Scam, Digital Arrest, Lottery Scam
-  AI-generated scripts: realistic scam call simulations
-  Feedback: "Good! You didn't share OTP. Here's what to do..."
-  Progress: scam recognition score (0-100), badges "Scam Spotter", "Fraud Fighter"
-
-LOCAL STORAGE (Encrypted, Offline-First) - Room Database
-  - Call logs + transcripts (AES-256 encrypted)
-  - Scam pattern database (pre-downloaded, weekly update)
-  - Trusted contacts (Family Shield)
-  - Training progress + badges
-  - User settings + preferences
-
-COMMUNITY SYNC (Optional, User Consent)
-  When online:
-    - Download latest scam patterns (weekly)
-    - Upload anonymized reports (no audio, only metadata)
-    - Community scam radar (geographic heatmap)
-  Privacy guarantees:
-    - No call recordings uploaded
-    - No phone numbers shared (anonymized hashes)
-    - Opt-in only
-
-PRIVACY-FIRST DESIGN
-  - Zero audio leaves device
-  - All processing on-phone (Snapdragon NPU)
-  - Encrypted local storage (AES-256)
-  - Community reports anonymized (no PII)
-```
+1. Risk crosses the critical threshold, in either flow.
+2. A notification is sent to the paired family phone with name, call duration, risk level, and
+   the app just opened.
+3. The family member can call back in one tap.
 
 ---
 
-### DETAILED DATA PIPELINE
+## 3. Risk model
 
-#### Pipeline 1: Real-Time Audio Scam Detection
+Risk is a single score from 0 to 100, built from independent signals. Every signal is
+explainable, so the alert can always say *why*.
 
-```text
-Phone Call (Speakerphone)
-  -> Android Microphone API (AudioRecord / MediaRecorder)
-  -> Raw Audio Stream (PCM, 16kHz, mono)
+| Signal | Source | Points |
+|---|---|---|
+| Caller not in contacts | Contacts lookup | +10 |
+| Call longer than 5 minutes | Call timer | +10 |
+| Call longer than 10 minutes | Call timer | +10 more |
+| Scam phrase matched (per category, capped) | Transcript | up to +40 |
+| Classifier scam probability | LiteRT model | up to +20 |
+| Payment app opened within 15 min of call | Foreground-app check | +20 |
 
-ON-DEVICE AI PIPELINE
-  1. Whisper Tiny (Speech-to-Text)
-     - Input: raw audio stream; Output: real-time transcription
-     - Latency: ~200ms per sentence; Model size: ~40MB; Runs on: Snapdragon NPU
-  2. Custom Audio Classifier (Keyword Spotting)
-     - Input: raw audio stream; Patterns: 20+ scam phrases (Hindi + English)
-     - Output: match confidence (0-1); Latency: <100ms
-  3. Phi-3 Mini 3.8B (Urgency/Context Analysis)
-     - Input: transcription; Analyzes: urgency tactics, pressure language
-     - Output: urgency score (0-1); Latency: ~500ms; Model size: ~2GB (Q4)
-  4. Custom CNN (Voice Cloning Detection)
-     - Input: spectrogram; Analyzes: spectral artifacts, breathing patterns
-     - Output: synthetic voice probability (0-1); Latency: ~300ms
+### Phrase categories (Telugu, Hindi, English)
 
-MULTI-SIGNAL FUSION LAYER
-  - Audio patterns (keyword matches): 0-40 points
-  - Urgency detection (Phi-3): 0-30 points
-  - Voice cloning score (CNN): 0-20 points
-  - Behavioral biometrics (typing/touch): 0-10 points
-  Total: 0-100
-  Thresholds: 0-30 Safe (green) | 31-50 Low (yellow) | 51-70 Medium (orange) | 71-100 High/SCAM (red)
+| Category | Examples |
+|---|---|
+| Authority impersonation | police, CBI, customs, cyber cell, RBI officer |
+| Threat | digital arrest, warrant, case filed, account blocked |
+| Credential request | OTP, UPI PIN, CVV, password, share the code |
+| Urgency | immediately, within 10 minutes, turant, abhi |
+| Isolation | don't tell anyone, stay on the line, don't cut the call |
+| Identity hook | Aadhaar, PAN, KYC update, parcel seized |
 
-MULTI-MODAL ALERT SYSTEM (if Risk Score > 70)
-  1. Haptic: long vibration (500ms pulse), repeats every 10 seconds
-  2. Visual overlay: "UPI SCAM DETECTED", "Caller requesting OTP", "87% likelihood"; does not interrupt call
-  3. Audio whisper: TTS "Warning: This call shows scam patterns. Do not share OTP or bank details." at 30% volume
-  4. LED: red blink (1 Hz)
-  5. Smartwatch: vibrate wrist, show scam type
+Credential request plus authority impersonation is treated as near-certain scam, because no real
+institution asks for an OTP.
 
-Post-Call: save to encrypted local DB
-  - Call duration, risk score, transcript (AES-256)
-  - Scam type classification
-  - Reviewable in History tab
-```
+### Thresholds
 
-#### Pipeline 2: UPI QR Code Scanner
+| Score | Level | Action |
+|---|---|---|
+| 0-29 | Safe | Nothing shown |
+| 30-59 | Watch | Small amber indicator on the bubble |
+| 60-84 | High | Full-screen alert, haptics; payment guard armed |
+| 85-100 | Critical | Alert, payment guard, family alert |
 
-```text
-Camera Preview (CameraX)
-  -> QR Code Detection (ML Kit / ZXing)
-  -> QR Payload Extraction (URL, UPI ID, amount)
-
-QR VALIDATION PIPELINE
-  1. URL parsing: extract UPI ID (e.g., merchant@upi), amount, transaction note
-  2. Beneficiary verification: cross-check with UPI app API (if available); flag name mismatches
-  3. Payment direction detection: detect PAYING vs RECEIVING; flag "receive money" scams
-  4. Tampering detection: computer vision for sticker overlays; compare printed QR vs scanned payload
-  5. Transaction history: check local DB; flag first-time or large amounts; community reports (opt-in)
-
-  -> Risk Score (0-100)
-  -> If > 70: "SUSPICIOUS QR CODE" / "Beneficiary name mismatch detected" / "Do not proceed with payment"
-```
-
-#### Pipeline 3: Family Shield Mode
-
-```text
-Scam Detected (Risk Score > 80)
-
-FAMILY SHIELD WORKFLOW
-  1. Check settings: Family Shield enabled? trusted contacts list
-  2. Generate alert: "Dad received potential scam call from +91-XXXXX-XXXXX at 2:34 PM",
-     "Risk Score: 87/100", "Scam Type: UPI Fraud - Caller requesting OTP",
-     "Action Taken: Alerted user via haptic + visual"
-  3. Send SMS to trusted contacts (Android SMS API, requires permission; parallel; optional callback link)
-  4. Log to family dashboard (encrypted local DB; optional cloud sync with consent; web dashboard)
-  5. Weekly report: aggregate past week, "3 suspicious calls, 0 OTP shared", send via SMS/email
-```
+The payment guard also arms on any unknown call longer than 5 minutes, even at a low score,
+because Flow B has no transcript to score.
 
 ---
 
-## 12 KEY INNOVATIONS (BEYOND KAVACH)
+## 4. Architecture
 
-### 1. Real-Time Audio Scam Detection
-- Live on-device transcription (Whisper Tiny)
-- Keyword spotting, 20+ scam phrases (Hindi + English)
-- Urgency detection via Phi-3 Mini
-- Haptic alerts mid-call, no interruption
-- Overlay: "UPI SCAM DETECTED: Caller requesting OTP. Do not share."
+### Components
 
-### 2. AI Voice Cloning Detector
-- Spectral analysis for synthetic artifacts
-- Breathing pattern detection (AI voices lack natural breathing)
-- Frequency spectrum anomaly detection
-- Live score: "87% likelihood: SYNTHETIC VOICE"
-- Demo: play cloned voice, app flags fake
+| Component | Responsibility |
+|---|---|
+| `CallMonitor` | Listens to call state; records caller number, start, end, duration. |
+| `ContactChecker` | Answers "is this number saved?" |
+| `ListeningService` | Foreground service; captures speaker audio during an active call. |
+| `Transcriber` | Converts audio to text. `SpeechRecognizer` first, Whisper as the upgrade. |
+| `PhraseMatcher` | Matches transcript against the multilingual phrase list. |
+| `ScamClassifier` | LiteRT model on the NPU; returns scam probability for a sentence. |
+| `RiskEngine` | Combines all signals into one score and a list of reasons. |
+| `AppWatcher` | Detects when a UPI or banking app comes to the foreground. |
+| `PaymentGuard` | Decides whether to show the pause screen. |
+| `AlertOverlay` | Draws the in-call alert and the pause screen over other apps. |
+| `FamilyNotifier` | Sends the critical alert to the paired phone. |
+| `SessionStore` | Room database of past calls and their risk results. |
+| `HardwareProfile` | Reads chip, RAM, and NPU availability at startup; chooses the tier. |
 
-### 3. Smart Contact Verification
-- Cross-check official databases (RBI bank numbers, government helplines)
-- Crowdsourced anonymized scam number DB
-- Number reputation score (0-100 from reports)
-- Offline cache for low connectivity
+### Three-tier escalation
 
-### 4. Behavioral Biometrics (Stress Detection)
-- Typing pattern (rushed = high stress)
-- Touch pressure (stress raises pressure)
-- App switching (rapid call ↔ UPI app = red flag)
-- Intervention: "HIGH STRESS DETECTED. Take a deep breath. Is this urgent?"
+The heavy models only run when there is reason to.
 
-### 5. Family Shield Mode
-- Scam detected: SMS to son/daughter
-- Remote dashboard: children see parent's scam exposure stats
-- One-tap emergency call
-- Weekly report: "Mom encountered 3 suspicious calls this week"
-- Privacy: only alerts shared, no recordings
+| Tier | Wakes when | Runs | Hardware |
+|---|---|---|---|
+| 0 | Always | `CallMonitor`, `AppWatcher`, `PhraseMatcher` | CPU, near-zero cost |
+| 1 | Score >= 20 | `Transcriber` (Whisper), `ScamClassifier` | Hexagon NPU |
+| 2 | Score >= 60 | `AlertOverlay`, `PaymentGuard`, `FamilyNotifier` | — |
 
-### 6. Scam Simulation Training
-- Scenarios: UPI fraud, KYC scam, digital arrest, lottery scam
-- AI-generated realistic scam scripts
-- Live feedback: "Good! You didn't share OTP. Here's what to do next..."
-- Recognition score tracked over time
-- Badges: "Scam Spotter", "Fraud Fighter", "Digital Guardian"
+### Hardware fallback ladder
 
-### 7. Multi-Modal Alert System
-- Haptic: short = low risk, long = high risk
-- Red overlay banner with scam type
-- Audio whisper: "Warning: This call shows scam patterns"
-- LED blinks red
-- Smartwatch wrist vibration
+The loaner phone model is unknown (a flagship iQOO with a Snapdragon NPU). `HardwareProfile`
+picks the best path that actually loads:
 
-### 8. UPI QR Code Scanner (Kavach Feature + Upgrade)
-- QR validation before payment
-- Beneficiary name check vs UPI app preview
-- Pay vs receive detection
-- Sticker overlay tampering detection
-- Unusual transaction pattern flags
+1. NPU delegate loads: full three tiers, latency shown on screen.
+2. NPU delegate fails: classifier on GPU or CPU; Whisper on CPU.
+3. Models fail to load: `SpeechRecognizer` plus `PhraseMatcher` only. Flows A, B and C still work.
 
-### 9. Offline-First Architecture
-- Core fully offline (audio analysis, pattern detection, alerts)
-- Local scam pattern DB, weekly update
-- Offline QR validation (local hash matching)
-- Sync when online (upload reports, download patterns)
-- Works in rural low-connectivity areas
-
-### 10. Post-Call Analysis & Reporting
-- Transcript with scam keywords in red
-- Risk timeline graph across call
-- Recommendations: "Next time: Ask for official callback number, verify with bank"
-- One-tap report (Chakshu portal, cyber crime, bank)
-- PDF export for police complaint/FIR
-
-### 11. Community Scam Radar
-- Anonymous crowdsourced pattern reports
-- Pattern updates pushed to all devices
-- Geographic scam heatmap
-- Trending alerts: "UPI KYC scam up 300% in Hyderabad this week"
-- Privacy: no recordings, only pattern metadata
-
-### 12. Multi-Language Support
-- Hindi + English code-switching (common in Indian scam calls)
-- Regional: Telugu, Tamil, Kannada, Marathi (future scope)
-- Transcription in preferred language
-- Region-specific scam patterns
+The demo must never depend on the top rung.
 
 ---
 
-## TECH STACK
+## 5. Screens
 
-### On-Device AI Models
-- **Whisper Tiny** (OpenAI): STT, ~40MB, Snapdragon NPU
-- **Phi-3 Mini 3.8B** (Microsoft): urgency/context, ~2GB Q4
-- **Custom CNN**: voice cloning detection (spectral)
-- **Custom Audio Classifier**: scam keyword spotting (TensorFlow Lite)
+| Screen | Content |
+|---|---|
+| Home | Protection status, today's calls checked, last alert, "Test with a sample call" button |
+| Call bubble | Floating over the dialler: "Unknown caller — tap speaker"; amber when risk is watch-level |
+| In-call alert | Full-screen red, scam type, one-line reason, "Hang up" and "Call family" buttons |
+| Pause screen | Call summary, 30-second countdown, continue / call family / cancel |
+| Call report | Duration, final score, matched phrases highlighted, advice |
+| Family setup | Add one trusted contact and pair their phone |
+| Settings | Protection toggles, language, sensitivity, watched payment apps, privacy statement |
+| Hardware card | Detected chip, active tier, inference latency (proof of NPU use for the jury) |
 
-### Android Development
-- **Language**: Kotlin
-- **UI Framework**: Jetpack Compose
-- **Audio**: Android MediaRecorder API, AudioRecord
-- **Database**: Room (logs, patterns, contacts)
-- **Background Processing**: WorkManager (pattern updates, sync)
-- **Notifications**: Android NotificationManager (haptic + visual)
-- **Camera**: CameraX (QR scanning)
-- **Encryption**: Android Keystore (AES-256 transcripts)
-
-### Infrastructure
-- **On-Device Inference**: MLC Chat / llama.cpp (Whisper + Phi-3)
-- **Offline Database**: pre-downloaded scam patterns (SQLite)
-- **Community Updates**: encrypted opt-in sync
-- **Privacy**: zero audio leaves device
+Design principles: large text, high contrast, one action per screen, no jargon. The primary user
+is 60 or older.
 
 ---
 
-## UI/UX DESIGN (CLEAN, MINIMAL, ACCESSIBLE)
+## 6. Tech stack
 
-### Home Screen
-- Big status: "Chetaka Active" (green shield)
-- Stats: "Today: 0 scam calls detected"
-- Big "Test Mode" button (demo, plays recorded scam calls)
-- Bottom nav: Home | History | Training | Settings
+| Area | Choice |
+|---|---|
+| Language and UI | Kotlin, Jetpack Compose |
+| Minimum Android | API 26 |
+| Call state | `TelephonyManager` |
+| Foreground app | `UsageStatsManager` |
+| Overlays | `SYSTEM_ALERT_WINDOW` |
+| Speech to text | `SpeechRecognizer` (offline), Whisper on-device as upgrade |
+| Classifier | LiteRT with the Qualcomm NPU delegate |
+| Storage | Room |
+| Background | Foreground Service, Kotlin coroutines |
+| Optional camera stretch | CameraX with ML Kit barcode scanning for UPI QR checks |
 
-### During Call Screen (Overlay)
-- Top banner: "SCAM DETECTED" (red)
-- Type: "UPI Fraud - Caller requesting OTP"
-- Confidence: "87% likelihood"
-- "Emergency Contact" button (one-tap call)
-- Discreet: no call interruption, scammer unaware
+### Permissions
 
-### Post-Call Report
-- Duration: "3:42"
-- Risk: "87/100" (red)
-- Type: "UPI Fraud"
-- Transcript, scam keywords in red
-- Recommendation: "You did well! You didn't share OTP. Next time, ask for official number."
-- Buttons: "Report to Cyber Crime" | "Export PDF"
+| Permission | Used for |
+|---|---|
+| `READ_PHONE_STATE`, `READ_CALL_LOG` | Call start, end, and caller number |
+| `READ_CONTACTS` | Unknown-number check |
+| `RECORD_AUDIO` | Listening on speaker |
+| `PACKAGE_USAGE_STATS` | Detecting the payment app (granted in system settings) |
+| `SYSTEM_ALERT_WINDOW` | Alert and pause screen overlays |
+| `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MICROPHONE` | Listening during a call |
+| `POST_NOTIFICATIONS` | Alerts on Android 13 and later |
+| `VIBRATE` | Haptics |
+| `CAMERA` | Optional QR stretch goal |
 
-### Family Shield Dashboard
-- Trusted contact list (add/remove)
-- Recent: "Dad received potential scam call from +91-XXXXX (2 hours ago)"
-- Weekly: "This week: 3 suspicious calls, 0 OTP shared"
-- "Call Dad Now" button
-
-### Training Mode
-- Scenarios: "UPI Fraud" | "KYC Scam" | "Digital Arrest" | "Lottery Scam"
-- AI generates scam call script
-- User answers: multiple choice or voice
-- Feedback: "Excellent! You recognized the scam pattern."
-- Progress: "Level 3: Scam Spotter (75/100)"
-
-### Settings
-- Feature toggles: real-time detection, voice cloning detector, Family Shield, etc.
-- Language: Hindi / English / Regional
-- Sensitivity: Low / Medium / High (detection threshold)
-- Privacy: "No audio leaves device" badge
-- About: "Inspired by Kavach (iQOO Bengaluru 2nd Runner-Up)"
+Onboarding must walk the user through the two settings-screen permissions
+(`PACKAGE_USAGE_STATS` and `SYSTEM_ALERT_WINDOW`), because they cannot be requested with a
+normal dialog.
 
 ---
 
-## WHY CHETAKA WINS
+## 7. Privacy rules
 
-### 1. Builds on Proven Winner
-- Kavach won 2nd Runner-Up (validated problem)
-- Judges already rated scam detection "important"
-- Iterating on success, not guessing
-
-### 2. Meaningful Differentiation
-- Kavach post-call text; Chetaka real-time audio
-- Kavach visual alerts; Chetaka haptic + visual + audio
-- Kavach basic patterns; Chetaka 12 new features (voice cloning, Family Shield, etc.)
-
-### 3. Technical Depth
-- Multi-model pipeline (Whisper + Phi-3 + CNN)
-- Behavioral biometrics (novel)
-- Offline-first (hard, impressive)
-
-### 4. Demo Wow Factor
-- Live test call, phone vibrates mid-call
-- Voice cloning demo (synthetic vs real)
-- Family Shield demo (parent + child phones)
-- Judges feel urgency, see live protection
-
-### 5. Real-World Impact
-- Protects elderly parents (emotional story)
-- Works offline (rural India)
-- Community-powered (network effect)
-- Educational (training prevents future scams)
+- No audio is written to disk. Audio buffers are discarded after transcription.
+- No network calls except the family alert.
+- Stored per call: caller number hash, duration, final score, matched phrase categories.
+- Transcripts are kept only in memory during the call, unless the user saves the report.
+- The payment guard knows only which app opened. It never reads screen content or amounts.
+- One button deletes all stored history.
 
 ---
 
-## COMPETITION ADVANTAGE
+## 8. Scoring against the judging rubric
 
-| Feature | Kavach (Bengaluru) | Chetaka (You) |
-|---------|-------------------|---------------|
-| Detection timing | Post-call | **Real-time during call** |
-| Input method | Text + QR | **Live audio + QR** |
-| Alert method | Visual | **Haptic + visual + audio** |
-| AI models | Text patterns | **Whisper + Phi-3 + CNN** |
-| Voice cloning detection | No | YES |
-| Family Shield | No | YES |
-| Behavioral biometrics | No | YES |
-| Training mode | No | YES |
-| Community radar | No | YES |
-| Multi-language | English only | **Hindi + English** |
+| Criterion | Weight | How Chetaka earns it |
+|---|---|---|
+| End product quality | 30% | Flows A, B and C work reliably; fallback ladder prevents crashes |
+| Novelty and impact | 20% | Payment-app guard after the call; Telugu-Hindi-English phrases |
+| Creative phone use | 15% | Microphone, call state, on-device NPU inference, overlays, optional camera |
+| Technical depth | 15% | Tiered escalation, hardware detection, explainable risk engine |
+| Office Kit usage | 10% | Used throughout: mirroring for demos, file transfer for test audio, clipboard |
+| Demo and presentation | 10% | Three-phone live story on the iQOO device |
 
 ---
 
-## TARGET OUTCOME
-- **Win Hyderabad City Battle** (Student Track)
-- **Advance to Grand Finale** (Top 6 from Hyderabad)
-- **Compete for ₹40 Lakh national prize pool**
-- **Real-world deployment**: partner with banks, telecom providers, cyber crime cells
+## 9. Risks and mitigations
+
+| Risk | Mitigation |
+|---|---|
+| Speech recognition weak in a noisy hall | Flow B does not need audio; keep test calls short and scripted |
+| NPU delegate fails on the loaner phone | Fallback ladder; the demo runs on rung 3 if needed |
+| Overlay blocked by OriginOS battery or permission settings | Test permissions in the first hour on the loaner phone |
+| `UsageStatsManager` reports the app late | Poll every second while the guard is armed |
+| False alarm on a real bank call | Credential request required for High; pause screen always offers "continue" |
+| Running out of time | Build order below puts the novel, model-free part first |
+| Jury asks technical questions | Core logic written by the team, not generated; rehearse the eight standard questions |
 
 ---
 
-## ACKNOWLEDGMENTS
-- **Inspiration**: Kavach (Team Smoke Test, iQOO Bengaluru 2nd Runner-Up)
-- **Models**: Whisper Tiny (OpenAI), Phi-3 Mini (Microsoft)
-- **Datasets**: public scam call transcripts, community reports
-- **Guidance**: iQOO Hackathon mentors, Reskilll team
+## 10. Event-day build order (30 hours)
+
+| Hours | Milestone | Done when |
+|---|---|---|
+| 0-1 | Setup on loaner phone | Empty app installs; first commit pushed to the linked repo |
+| 1-5 | `CallMonitor`, `ContactChecker`, `SessionStore` | Unknown call logged with duration |
+| 5-9 | `AppWatcher`, `PaymentGuard`, pause screen | Opening PhonePe after a long unknown call shows the pause screen |
+| 9-14 | `ListeningService`, `Transcriber`, `PhraseMatcher`, `RiskEngine` | Live score rises during a scripted scam call |
+| 14-17 | In-call alert overlay and haptics | Red alert fires mid-call |
+| 17-20 | `FamilyNotifier` and family setup | Second phone receives the alert |
+| 20-24 | `ScamClassifier` on NPU, hardware card | Latency shown on screen; skipped if blocked |
+| 24-27 | Test set: 20 scam calls, 20 normal calls | Real results recorded |
+| 27-30 | Polish, slides, demo rehearsal | Full demo runs three times in a row |
+
+Commit and push at every milestone.
 
 ---
 
-## BUILD PLAN (30-HOUR HACKATHON)
+## 11. Demo script (3 minutes)
 
-### Hours 1-6: Core MVP
-- [ ] Android app setup (Kotlin, Jetpack Compose)
-- [ ] Mic capture (speakerphone)
-- [ ] Whisper Tiny STT integration
-- [ ] Basic keyword spotting (10 scam phrases)
+1. **Setup (20 s):** "Meet Amma, 67." Phone A shows Chetaka active. Phone C belongs to her son.
+2. **Call with speaker (60 s):** Phone B calls as a police officer. Amma taps speaker. The
+   officer mentions digital arrest, Aadhaar, and money laundering. The risk meter climbs. The red
+   alert fires.
+3. **Call without speaker (60 s):** Same scam, no speaker. The officer tells Amma to pay through
+   PhonePe. She opens PhonePe. The pause screen blocks it.
+4. **Family (20 s):** Phone C buzzes with the alert. Her son calls back.
+5. **Proof (20 s):** Hardware card shows chip, tier, and NPU latency. Test results slide.
 
-### Hours 7-12: AI Integration
-- [ ] Phi-3 Mini urgency detection
-- [ ] Train audio classifier (scam patterns)
-- [ ] Haptic alerts
-- [ ] In-call visual overlay
+---
 
-### Hours 13-18: Advanced Features
-- [ ] QR scanner + validation
-- [ ] Contact verification (local DB)
-- [ ] Post-call report
-- [ ] Family Shield (basic SMS alerts)
+## 12. Jury questions to rehearse
 
-### Hours 19-24: Polish
-- [ ] UI/UX refinement
-- [ ] Hindi + English support
-- [ ] Offline mode testing
-- [ ] Training mode (1-2 scenarios)
+1. Walk through what happens from the caller's voice to the alert.
+2. Why on-device and not cloud?
+3. What exactly runs on the NPU, and how do you know?
+4. How does the risk score decide? What about false alarms?
+5. How do you handle Telugu mixed with English?
+6. How is this different from caller-ID apps and built-in scam alerts?
+7. What happens if the microphone permission is denied or recognition fails?
+8. What would you build next?
 
-### Hours 25-28: Demo Prep
-- [ ] Record test scam calls (actor, 3-5 scenarios)
-- [ ] Live demo script
-- [ ] Pitch deck (8-10 slides)
-- [ ] Rehearse demo (timing, flow)
+---
 
-### Hours 29-30: Final Testing
-- [ ] Stress test (edge cases, low battery, poor network)
-- [ ] Bug fixes
-- [ ] Submit to hackathon portal
-- [ ] Rest before judging
+## 13. Future scope
+
+- Ship as an OriginOS system feature, with dialler-level audio access instead of speakerphone.
+- More Indian languages: Tamil, Kannada, Marathi, Bengali.
+- Opt-in, anonymised scam-phrase updates.
+- UPI QR tampering checks with the camera.
+- Scam-awareness training mode for elderly users.
+
+---
+
+## Acknowledgments
+
+Earlier scam-detection work in this hackathon series, including Kavach (Bengaluru), showed the
+problem matters. Open-source components used at the event will be listed here with licences.
