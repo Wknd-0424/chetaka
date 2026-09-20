@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chetaka — iQOO Hackathon 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   =========================================== */
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--stage-bg, #000); }
+.deck-viewport { position: fixed; inset: 0; overflow: hidden; background: var(--stage-bg, #000); }
+.deck-stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0; background: var(--slide-bg, #fff); }
+.slide { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; display: block; visibility: hidden; opacity: 0; pointer-events: none; background: var(--slide-bg, #fff); }
+.slide.active, .slide.visible { visibility: visible; opacity: 1; pointer-events: auto; z-index: 1; }
+img, video, canvas, svg { max-width: 100%; max-height: 100%; }
+.deck-controls { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 1000; }
+@page { size: 1920px 1080px; margin: 0; }
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+  .deck-viewport { position: static; overflow: visible; background: #fff; }
+  .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+  .slide { position: relative; display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+  .slide:last-child { break-after: auto; page-break-after: auto; }
+  .deck-controls, .progress, .edit-badge { display: none !important; }
+  .reveal { opacity: 1 !important; transform: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+}
+
+/* ===========================================
+   LIGHT THEME TOKENS
+   Paper canvas, ink text, tri-stripe accent
+   (sky / deep blue / red) for rules and emphasis.
+   =========================================== */
+:root {
+  --stage-bg: #E7E9EE;
+  --slide-bg: #F7F8FA;
+  --panel: #FFFFFF;
+  --panel-2: #EEF1F6;
+  --line: #D7DCE4;
+  --line-soft: #E6EAF0;
+  --ink: #0F1319;
+  --text: #333A45;
+  --muted: #5C6470;
+  --hint: #8A92A0;
+  --sky: #1580C4;
+  --blue: #1E3C96;
+  --blue-soft: #E8EEFB;
+  --red: #D22B20;
+  --red-soft: #FDECEA;
+  --safe: #1B8A50;
+  --safe-soft: #E9F6EE;
+  --amber: #B97407;
+  --amber-soft: #FDF3E3;
+  --display: 'Archivo', sans-serif;
+  --body: 'IBM Plex Sans', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+  --shadow: 0 2px 4px rgba(15,19,25,.04), 0 12px 28px rgba(15,19,25,.05);
+}
+
+/* ===========================================
+   SHARED SLIDE CHROME
+   =========================================== */
+.slide { font-family: var(--body); color: var(--ink); }
+.slide::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: linear-gradient(rgba(15,19,25,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(15,19,25,.025) 1px, transparent 1px);
+  background-size: 96px 96px;
+}
+.stripe { display: flex; height: 6px; width: 180px; }
+.stripe i { flex: 1; }
+.stripe i:nth-child(1) { background: var(--sky); }
+.stripe i:nth-child(2) { background: var(--blue); }
+.stripe i:nth-child(3) { background: var(--red); }
+.header { position: absolute; left: 110px; right: 110px; top: 70px; display: flex; align-items: flex-end; justify-content: space-between; z-index: 2; }
+.kicker { font-family: var(--mono); font-size: 20px; letter-spacing: 3px; text-transform: uppercase; color: var(--sky); margin-bottom: 14px; }
+.title { font-family: var(--display); font-weight: 800; font-size: 58px; line-height: 1.04; letter-spacing: -1px; margin: 0; }
+.pageno { font-family: var(--mono); font-size: 20px; color: var(--hint); letter-spacing: 2px; text-align: right; white-space: nowrap; }
+.pageno .stripe { margin: 12px 0 0 auto; width: 120px; height: 4px; }
+.footer { position: absolute; left: 110px; right: 110px; bottom: 44px; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 16px; letter-spacing: 2px; color: var(--hint); text-transform: uppercase; z-index: 2; }
+.body { position: absolute; left: 110px; right: 110px; top: 230px; bottom: 100px; z-index: 2; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px 30px; box-sizing: border-box; box-shadow: var(--shadow); }
+.label { font-family: var(--mono); font-size: 17px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+h3 { font-family: var(--display); font-weight: 700; font-size: 30px; margin: 0 0 12px; letter-spacing: -.3px; }
+h4 { font-family: var(--display); font-weight: 700; font-size: 23px; margin: 0 0 6px; }
+p, li { font-size: 22px; line-height: 1.45; color: var(--text); margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+li { position: relative; padding-left: 26px; margin-bottom: 10px; }
+li::before { content: ""; position: absolute; left: 0; top: 14px; width: 10px; height: 2px; background: var(--sky); }
+strong { color: var(--ink); font-weight: 600; }
+.accent-red { color: var(--red); } .accent-sky { color: var(--sky); } .accent-safe { color: var(--safe); } .accent-blue { color: var(--blue); } .accent-amber { color: var(--amber); }
+.chip { display: inline-block; font-family: var(--mono); font-size: 17px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--text); background: var(--panel-2); margin: 0 8px 10px 0; }
+.photo { border-radius: 14px; overflow: hidden; border: 1px solid var(--line); position: relative; margin: 0; box-shadow: var(--shadow); }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; max-width: none; max-height: none; }
+.photo figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 22px; font-family: var(--mono); font-size: 16px; letter-spacing: 1.5px; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.78)); text-transform: uppercase; }
+.src { font-family: var(--mono); font-size: 14px; color: var(--hint); letter-spacing: 1px; margin-top: 10px; }
+.tag { font-family: var(--mono); font-size: 15px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.stretch { font-family: var(--mono); font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--amber); background: var(--amber-soft); border: 1px solid #EFD9B4; border-radius: 6px; padding: 2px 7px; margin-left: 8px; vertical-align: middle; }
+
+/* ===========================================
+   REVEAL ANIMATION
+   =========================================== */
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
+.slide.visible .reveal { opacity: 1; transform: none; }
+.slide.visible .d1 { transition-delay: .08s } .slide.visible .d2 { transition-delay: .16s } .slide.visible .d3 { transition-delay: .24s }
+.slide.visible .d4 { transition-delay: .32s } .slide.visible .d5 { transition-delay: .40s } .slide.visible .d6 { transition-delay: .48s }
+
+/* ===========================================
+   SLIDE 1 — TITLE & TEAM
+   =========================================== */
+.s1 .hero { position: absolute; right: 0; top: 0; width: 900px; height: 1080px; }
+.s1 .hero img { width: 100%; height: 100%; object-fit: cover; object-position: 55% center; max-width: none; max-height: none; }
+.s1 .hero::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, #F7F8FA 0%, rgba(247,248,250,.72) 26%, rgba(247,248,250,0) 58%); }
+.s1 .left { position: absolute; left: 110px; top: 120px; width: 900px; z-index: 2; }
+.s1 .event { font-family: var(--mono); font-size: 21px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
+.s1 h1 { font-family: var(--display); font-weight: 800; font-size: 184px; line-height: .9; letter-spacing: -6px; margin: 40px 0 24px; }
+.s1 .tagline { font-family: var(--display); font-weight: 600; font-size: 44px; line-height: 1.15; margin: 30px 0 0; max-width: 840px; color: var(--ink); }
+.s1 .tagline em { font-style: normal; color: var(--sky); }
+.s1 .track { display: inline-flex; gap: 12px; margin-top: 34px; }
+.s1 .track span { font-family: var(--mono); font-size: 18px; letter-spacing: 2px; text-transform: uppercase; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); }
+.s1 .track span:first-child { border-color: var(--sky); color: var(--sky); background: #EAF4FB; }
+.s1 .team { position: absolute; left: 110px; bottom: 74px; width: 900px; z-index: 2; }
+.s1 .members { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.s1 .member { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow); }
+.s1 .member b { display: block; font-family: var(--display); font-size: 24px; }
+.s1 .member span { display: block; font-size: 17px; color: var(--muted); margin-top: 6px; line-height: 1.35; }
+.s1 .member a { display: block; font-family: var(--mono); font-size: 15px; color: var(--sky); text-decoration: none; margin-top: 8px; }
+
+/* ===========================================
+   SLIDE 2 — PROBLEM STATEMENT
+   =========================================== */
+.s2 .grid { display: grid; grid-template-columns: 1.08fr 1fr; gap: 36px; height: 100%; }
+.s2 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.s2 .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px 22px; box-shadow: var(--shadow); }
+.s2 .stat b { display: block; font-family: var(--display); font-weight: 800; font-size: 46px; letter-spacing: -1px; line-height: 1; white-space: nowrap; }
+.s2 .stat:nth-child(2) b { color: var(--red); }
+.s2 .stat span { display: block; font-size: 18px; line-height: 1.35; color: var(--muted); margin-top: 10px; }
+.s2 .photo { height: 430px; margin-top: 20px; }
+.s2 .photo img { object-position: center 40%; }
+.s2 .right { display: flex; flex-direction: column; gap: 18px; }
+.s2 .friction { display: grid; grid-template-columns: 64px 1fr; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line-soft); }
+.s2 .friction:last-child { border-bottom: 0; padding-bottom: 0; }
+.s2 .friction .n { font-family: var(--display); font-weight: 800; font-size: 34px; color: var(--red); line-height: 1; }
+.s2 .friction p { font-size: 20px; color: var(--muted); }
+.s2 .who { background: var(--red-soft); border-color: #F3C9C5; }
+
+/* ===========================================
+   SLIDE 3 — PROPOSED SOLUTION & USER JOURNEY
+   =========================================== */
+.s3 .value { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.s3 .value .lead { font-family: var(--display); font-weight: 700; font-size: 32px; line-height: 1.2; align-self: center; padding-right: 20px; }
+.s3 .value .panel { padding: 20px 22px; }
+.s3 .value .panel p { font-size: 18px; color: var(--muted); }
+.s3 .journey { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; height: 548px; }
+.s3 .flow { display: grid; grid-template-columns: 220px 1fr; gap: 22px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; box-shadow: var(--shadow); }
+.s3 .phone { width: 220px; height: 480px; border-radius: 32px; border: 8px solid #2A2F38; background: #F2F4F7; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 18px; text-align: center; position: relative; overflow: hidden; }
+.s3 .phone::before { content: ""; position: absolute; top: 12px; width: 56px; height: 8px; border-radius: 6px; background: #2A2F38; }
+.s3 .phone.alert { background: var(--red); color: #fff; }
+.s3 .phone.alert b { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1; }
+.s3 .phone.alert small { font-size: 15px; margin: 16px 0 20px; line-height: 1.3; }
+.s3 .phone.alert i { font-style: normal; background: #fff; color: var(--red); font-weight: 600; border-radius: 30px; padding: 10px 22px; font-size: 15px; }
+.s3 .phone.pause { background: #FFF7F6; }
+.s3 .ring { width: 104px; height: 104px; box-sizing: border-box; border-radius: 50%; border: 6px solid #F3C9C5; border-top-color: var(--red); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 32px; font-weight: 800; color: var(--red); margin-bottom: 16px; }
+.s3 .phone.pause b { font-family: var(--display); font-size: 22px; line-height: 1.15; color: var(--ink); }
+.s3 .phone.pause small { color: var(--muted); font-size: 14px; margin-top: 10px; line-height: 1.35; }
+.s3 .phone.family { justify-content: flex-start; padding-top: 44px; background: #EEF1F6; }
+.s3 .notif { background: #fff; color: #111; border-radius: 14px; padding: 12px; text-align: left; width: 100%; box-sizing: border-box; box-shadow: 0 6px 18px rgba(15,19,25,.12); }
+.s3 .notif b { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.s3 .notif b::before { content: ""; width: 16px; height: 16px; border-radius: 5px; background: var(--safe); }
+.s3 .notif span { display: block; font-size: 13px; line-height: 1.35; margin-top: 8px; color: #444; }
+.s3 .notif em { display: block; font-style: normal; color: var(--safe); font-weight: 600; font-size: 13px; margin-top: 8px; }
+.s3 .steps h3 { font-size: 27px; }
+.s3 .steps ol { margin: 4px 0 0; padding-left: 22px; }
+.s3 .steps ol li { font-size: 19px; padding-left: 4px; margin-bottom: 12px; }
+.s3 .steps ol li::before { display: none; }
+
+
+/* ===========================================
+   SLIDE 3 — CASE STUDY & SCALE
+   =========================================== */
+.sc .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; height: 100%; }
+.sc .case { height: 496px; }
+.sc .case .who { font-family: var(--display); font-weight: 700; font-size: 34px; margin: 8px 0 10px; }
+.sc .case .intro { font-size: 20px; color: var(--muted); line-height: 1.35; }
+.sc .step { margin-top: 18px; }
+.sc .step b { display: block; font-family: var(--display); font-size: 22px; color: var(--red); margin-bottom: 4px; }
+.sc .step p { font-size: 19.5px; line-height: 1.32; }
+.sc .callout { margin-top: 22px; background: #EAF4FB; border-color: #BEDCF0; }
+.sc .callout p { font-size: 21px; }
+.sc .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.sc .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px 24px; box-shadow: var(--shadow); }
+.sc .stat b { display: block; font-family: var(--display); font-weight: 800; font-size: 46px; line-height: 1; letter-spacing: -1px; white-space: nowrap; }
+.sc .stat span { display: block; font-size: 17.5px; color: var(--muted); line-height: 1.32; margin-top: 10px; }
+.sc .targeted { margin-top: 20px; }
+.sc .targeted li { font-size: 20px; margin-bottom: 9px; }
+
+/* ===========================================
+   SLIDE 4 — ON-DEVICE & AI ARCHITECTURE
+   Left-to-right tier flow with arrows between columns.
+   =========================================== */
+.s4 .flow { display: grid; grid-template-columns: 250px 40px 300px 40px 330px 40px 280px 40px 280px; height: 470px; }
+.s4 .col { display: flex; flex-direction: column; gap: 12px; }
+.s4 .colhead { font-family: var(--mono); font-size: 15px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--hint); margin-bottom: 2px; }
+.s4 .node { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; flex: 1; display: flex; flex-direction: column; justify-content: center; box-shadow: var(--shadow); }
+.s4 .node h4 { font-size: 23px; }
+.s4 .node p { font-size: 17px; line-height: 1.35; color: var(--muted); }
+.s4 .t0 { border-top: 4px solid var(--sky); } .s4 .t1 { border-top: 4px solid var(--blue); } .s4 .t2 { border-top: 4px solid var(--red); }
+.s4 .engine { border: 1px solid var(--sky); background: linear-gradient(180deg, #EAF4FB, var(--panel)); }
+.s4 .arrow { display: flex; align-items: center; justify-content: center; }
+.s4 .arrow svg { width: 30px; height: 30px; }
+.s4 .lower { margin-top: 20px; display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 20px; }
+.s4 .lower .panel { padding: 22px 26px; }
+.s4 .lower li { font-size: 19px; margin-bottom: 7px; }
+.s4 .vs { width: 100%; border-collapse: collapse; }
+.s4 .vs th, .s4 .vs td { font-size: 18px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); text-align: left; }
+.s4 .vs th { font-family: var(--mono); font-size: 14px; letter-spacing: 2px; color: var(--hint); font-weight: 400; text-transform: uppercase; }
+.s4 .vs tr:last-child td { border-bottom: 0; }
+.s4 .vs td:nth-child(2) { color: var(--safe); } .s4 .vs td:nth-child(3) { color: var(--hint); }
+
+/* ===========================================
+   SLIDE 6 — TECHNICAL STACK
+   =========================================== */
+.s6 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; height: 100%; grid-template-rows: 2.1fr 1fr; }
+.s6 .layer { display: flex; flex-direction: column; }
+.s6 .layer .tag { color: var(--sky); }
+.s6 .layer h3 { font-size: 26px; }
+.s6 .layer p { font-size: 18px; color: var(--muted); margin-bottom: 8px; }
+.s6 .item { display: flex; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line-soft); font-size: 19px; }
+.s6 .item b { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.s6 .item span { color: var(--muted); text-align: right; }
+.s6 .perm { grid-column: 1 / span 3; }
+.s6 .permgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 24px; margin-top: 8px; }
+.s6 .permgrid div { font-size: 19px; color: var(--muted); }
+.s6 .permgrid code { display: block; font-family: var(--mono); font-size: 17px; color: var(--ink); margin-bottom: 2px; }
+
+/* ===========================================
+   SLIDE 7 — KEY FEATURES & INNOVATION
+   =========================================== */
+.s7 .grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 28px; height: 100%; }
+.s7 .features { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-content: start; }
+.s7 .feat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 28px 26px; box-shadow: var(--shadow); }
+.s7 .feat .ico { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--panel-2); border: 1px solid var(--line); margin-bottom: 12px; }
+.s7 .feat .ico svg { width: 24px; height: 24px; }
+.s7 .feat h4 { font-size: 22px; }
+.s7 .feat p { font-size: 19px; color: var(--muted); line-height: 1.38; }
+.s7 .feat.hero { grid-column: 1 / span 2; border-color: #F0BFBB; background: var(--red-soft); }
+.s7 table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+.s7 th, .s7 td { padding: 21px 18px; font-size: 20px; border-bottom: 1px solid var(--line-soft); text-align: center; }
+.s7 th { font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-weight: 400; background: var(--panel-2); }
+.s7 td:first-child, .s7 th:first-child { text-align: left; color: var(--text); }
+.s7 tr:last-child td { border-bottom: 0; }
+.s7 .us { background: #EAF4FB; font-weight: 600; }
+.s7 th.us { color: var(--sky); background: #DCEDF8; }
+.s7 .y { color: var(--safe); font-weight: 600; } .s7 .n { color: var(--hint); } .s7 .p { color: var(--amber); }
+.s7 .gap { margin-top: 20px; padding: 24px 26px; }
+.s7 .gap p { font-size: 20px; }
+
+/* ===========================================
+   SLIDE 8 — IMPLEMENTATION PLAN
+   =========================================== */
+.s8 .grid { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 22px; height: 100%; }
+.s8 .mvp li { font-size: 21px; margin-bottom: 15px; }
+.s8 .mvp .must li::before { background: var(--safe); }
+.s8 .mvp .nice li::before { background: var(--amber); }
+.s8 .row { display: grid; grid-template-columns: 96px 1fr; gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--line-soft); align-items: baseline; }
+.s8 .row:last-child { border-bottom: 0; }
+.s8 .row .h { font-family: var(--mono); font-size: 17px; color: var(--sky); }
+.s8 .row p { font-size: 19.5px; }
+.s8 .row p span { color: var(--muted); }
+.s8 .right { display: flex; flex-direction: column; gap: 20px; }
+.s8 .demo ol { margin: 0; padding-left: 22px; }
+.s8 .demo ol li { font-size: 20px; padding-left: 4px; margin-bottom: 14px; }
+.s8 .demo ol li::before { display: none; }
+.s8 .evals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.s8 .evals div { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 8px; text-align: center; }
+.s8 .evals b { display: block; font-family: var(--display); font-size: 36px; font-weight: 800; }
+.s8 .evals span { font-size: 14px; color: var(--muted); }
+
+/* ===========================================
+   SLIDE 9 — UTILITY & IMPACT
+   =========================================== */
+.s9 .quad { display: grid; grid-template-columns: 1fr 1fr 1.1fr; grid-template-rows: 1fr 1fr; gap: 20px; height: 100%; }
+.s9 .panel h3 { display: flex; align-items: center; gap: 14px; font-size: 29px; }
+.s9 .panel h3 .n { font-family: var(--mono); font-size: 17px; color: var(--sky); }
+.s9 .panel li { font-size: 20px; margin-bottom: 9px; }
+.s9 .users { grid-row: 1 / span 2; grid-column: 3; display: flex; flex-direction: column; }
+.s9 .users .photo { height: 300px; margin-bottom: 20px; }
+.s9 .why { grid-column: 1 / span 2; background: var(--blue-soft); border-color: #C6D3F1; }
+.s9 .why .reasons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 36px; }
+
+/* ===========================================
+   SLIDE 10 — REFERENCES
+   =========================================== */
+.s10 .refs { columns: 2; column-gap: 60px; }
+.s10 .ref { break-inside: avoid; display: grid; grid-template-columns: 48px 1fr; gap: 14px; margin-bottom: 24px; }
+.s10 .ref .i { font-family: var(--mono); font-size: 20px; color: var(--sky); }
+.s10 .ref p { font-size: 19px; line-height: 1.45; }
+.s10 .ref em { color: var(--ink); }
+.s10 .ref .doi { font-family: var(--mono); font-size: 14px; color: var(--hint); display: block; margin-top: 4px; }
+.s10 .ref .link { display: block; font-family: var(--mono); font-size: 14px; color: var(--sky); text-decoration: none; border-bottom: 1px solid rgba(21,128,196,.4); margin-top: 6px; }
+.s10 .thanks { position: absolute; right: 110px; bottom: 100px; text-align: right; z-index: 2; }
+
+/* ===========================================
+   DECK CONTROLS
+   =========================================== */
+.progress { position: fixed; left: 0; top: 0; height: 4px; background: linear-gradient(90deg, var(--sky), var(--blue), var(--red)); z-index: 1001; transition: width .4s ease; }
+.deck-controls { display: flex; gap: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #5C6470; background: rgba(255,255,255,.9); border: 1px solid #D7DCE4; padding: 8px 14px; border-radius: 999px; opacity: 0; transition: opacity .3s; }
+body:hover .deck-controls { opacity: 1; }
+.edit-badge { position: fixed; top: 14px; right: 16px; z-index: 1002; font: 12px 'IBM Plex Mono', monospace; color: #fff; background: #B97407; padding: 6px 10px; border-radius: 6px; display: none; }
+body.editing .edit-badge { display: block; }
+body.editing [contenteditable="true"]:hover { outline: 1px dashed rgba(21,128,196,.6); }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="edit-badge">EDIT MODE — Esc to exit · Ctrl+S to save</div>
+<div class="deck-viewport">
+<div class="deck-stage" id="stage">
+
+<!-- =====================================================
+     SLIDE 1 — TITLE & TEAM
+     ===================================================== -->
+<section class="slide s1">
+  <div class="hero reveal"><img src="assets/hero_shield.jpg" alt="Elderly hands holding a smartphone"></div>
+  <div class="left">
+    <div class="event reveal d1">iQOO Hackathon 2026 · Hyderabad City Battle</div>
+    <h1 class="reveal d2">Chetaka</h1>
+    <div class="stripe reveal d3"><i></i><i></i><i></i></div>
+    <p class="tagline reveal d3">The on-device scam shield that follows the call <em>into the payment app.</em></p>
+    <div class="track reveal d4"><span>Track · FinTech &amp; Commerce</span><span>Fraud prevention</span></div>
+  </div>
+  <div class="team reveal d5">
+    <div class="label">Team Matrix · Mahatma Gandhi Institute of Technology</div>
+    <div class="members">
+      <div class="member"><b>Stephen Raj</b><span>Team lead · Android &amp; call pipeline</span><a href="mailto:ystephenraj24@gmail.com">ystephenraj24@gmail.com</a></div>
+      <div class="member"><b>Pranav</b><span>On-device AI &amp; scam dataset</span><a href="mailto:pranavbaddam17@gmail.com">pranavbaddam17@gmail.com</a></div>
+      <div class="member"><b>Sujit Reddy</b><span>Product, UX &amp; demo</span><a href="mailto:sujitreddy78@gmail.com">sujitreddy78@gmail.com</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================
+     SLIDE 2 — PROBLEM STATEMENT
+     ===================================================== -->
+<section class="slide s2">
+  <header class="header">
+    <div><div class="kicker">Problem statement</div><h2 class="title">Digital-arrest scams turn one phone call<br>into a UPI transfer within minutes.</h2></div>
+    <div class="pageno">02 / 10<div class="stripe"><i></i><i></i><i></i></div></div>
+  </header>
+  <div class="body" style="top:300px">
+    <div class="grid">
+      <div>
+        <div class="stats reveal d1">
+          <div class="stat"><b>2,41,537</b><span>Digital-arrest cases in India, 2022–2025</span></div>
+          <div class="stat"><b>₹3,012 cr</b><span>Lost to those cases in the same period</span></div>
+          <div class="stat"><b>46%</b><span>Of operations run from Cambodia, Myanmar and Laos</span></div>
+        </div>
+        <figure class="photo reveal d2"><img src="assets/worried_couple.jpg" alt="Elderly couple worried over a phone call"><figcaption>Impersonation · panic · a payment within minutes</figcaption></figure>
+        <div class="src">Source: MHA and I4C data as cited by Chetry (2026), Observer Research Foundation [7]</div>
+      </div>
+      <div class="right">
+        <div class="panel reveal d2">
+          <div class="label">Where the friction is</div>
+          <div class="friction"><div class="n">01</div><div><h4>Protection looks at the wrong thing</h4><p>Caller-ID apps judge who is calling. Scammers rotate clean numbers and pass every check.</p></div></div>
+          <div class="friction"><div class="n">02</div><div><h4>Protection stops at the wrong moment</h4><p>Call warnings end when the call ends. The money moves minutes later, inside the payment app.</p></div></div>
+          <div class="friction"><div class="n">03</div><div><h4>Protection speaks the wrong language</h4><p>Scam calls in Hyderabad mix Telugu, Hindi and English. Most tools understand English only.</p></div></div>
+        </div>
+        <div class="panel who reveal d3">
+          <div class="label">Who gets hurt</div>
+          <p><strong>Parents at home and first-time UPI users</strong> — people who trust authority, are isolated in the moment, and are pushed to act before they can check with anyone [4][6].</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Chetaka</span><span>FinTech &amp; Commerce · Fraud prevention</span></div>
+</section>
+
+<!-- =====================================================
+     SLIDE 3 — CASE STUDY & SCALE
+     ===================================================== -->
+<section class="slide sc">
+  <header class="header">
+    <div><div class="kicker">Case study · this already happened</div><h2 class="title">₹24 crore, 26 transfers, 73 days of fear.</h2></div>
+    <div class="pageno">03 / 10<div class="stripe"><i></i><i></i><i></i></div></div>
+  </header>
+  <div class="body">
+    <div class="grid">
+      <div>
+        <div class="panel case reveal d1">
+          <div class="label">Bengaluru · February–April 2026</div>
+          <div class="who">Lakshmi Ramamurthy, 74</div>
+          <p class="intro">Targeted after a property sale. Callers posing as CBI and Enforcement Directorate officers kept her under "digital arrest" from 10 February to 24 April 2026.</p>
+          <div class="step"><b>The call</b><p>Impersonated federal investigators; threatened arrest and asset seizure.</p></div>
+          <div class="step"><b>The pressure</b><p>Weeks of daily check-ins. She told nobody — isolation is the tactic.</p></div>
+          <div class="step"><b>The money</b><p>₹24 crore moved in 26 transactions to 23 mule accounts across 10 banks.</p></div>
+          <div class="step"><b>The end</b><p>Police intervened on 24 April, saving ₹3 crore. Six arrested; ₹5.5 crore recovered.</p></div>
+          <div class="src">Source: The Federal, 25 May 2026 [9]</div>
+        </div>
+        <div class="panel callout reveal d2">
+          <div class="label">Where Chetaka would have stepped in</div>
+          <p>Transaction 1. An unknown number, a long call, then a banking app — the payment guard fires before the first rupee moves, and her son is alerted the same minute.</p>
+        </div>
+      </div>
+      <div>
+        <div class="label reveal d1">How many people face this</div>
+        <div class="stats reveal d2">
+          <div class="stat"><b>2,41,537</b><span>Digital-arrest cases reported in India, 2022–2025</span></div>
+          <div class="stat"><b class="accent-red">₹3,012 cr</b><span>Lost in those cases (Ministry of Home Affairs data)</span></div>
+          <div class="stat"><b class="accent-red">₹1.25 lakh</b><span>Average loss per reported case (derived from the two MHA figures)</span></div>
+          <div class="stat"><b class="accent-safe">6,998</b><span>Indians rescued from scam compounds abroad, 2022–2025</span></div>
+        </div>
+        <div class="panel targeted reveal d3">
+          <div class="label">Who is targeted</div>
+          <ul>
+            <li>Retirees holding one large, recently liquid sum.</li>
+            <li>First-time digital payment users who trust authority.</li>
+            <li>People alone at home, told to keep the call secret.</li>
+            <li><strong>46%</strong> of the operations run from Cambodia, Myanmar and Laos.</li>
+          </ul>
+          <div class="src">Figures as cited by Chetry (2026), Observer Research Foundation [7]</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Chetaka</span><span>FinTech &amp; Commerce · Fraud prevention</span></div>
+</section>
+
+<!-- =====================================================
+     SLIDE 3 — PROPOSED SOLUTION & USER JOURNEY
+     ===================================================== -->
+<section class="slide s3">
+  <header class="header">
+    <div><div class="kicker">Proposed solution</div><h2 class="title">Warn during the call. Pause the payment after it.</h2></div>
+    <div class="pageno">04 / 10<div class="stripe"><i></i><i></i><i></i></div></div>
+  </header>
+  <div class="body">
+    <div class="value reveal d1">
+      <div class="lead">One shield across the whole scam path — call, payment, family.</div>
+      <div class="panel"><div class="tag accent-sky">Understands</div><p>What the caller says, in Telugu, Hindi and English — on the phone.</p></div>
+      <div class="panel"><div class="tag accent-red">Intervenes</div><p>Before the money moves — the payment guard needs no call audio.</p></div>
+      <div class="panel"><div class="tag accent-safe">Involves family</div><p>A trusted person is alerted at critical risk, in real time.</p></div>
+    </div>
+    <div class="journey">
+      <div class="flow reveal d2">
+        <div class="phone alert"><b>SCAM<br>DETECTED</b><small>Police never ask<br>for OTP.</small><i>HANG UP</i></div>
+        <div class="steps"><div class="tag accent-sky">1 · During call</div><h3>Warn mid-call</h3><ol>
+          <li>Unknown number calls.</li><li>Tap speaker — live listening needs speakerphone.</li><li>On-device transcript scored live.</li><li>High risk: full-screen alert + haptics.</li></ol></div>
+      </div>
+      <div class="flow reveal d3">
+        <div class="phone pause"><div class="ring">30</div><b>Wait. Are they asking you to pay?</b><small>Unknown caller · 12 min.<br>Real police never ask for money.</small><small style="color:var(--sky);margin-top:8px">I know this person — continue</small></div>
+        <div class="steps"><div class="tag accent-red">2 · After call</div><h3>Pause the payment</h3><ol>
+          <li>Call ends; length and caller kept.</li><li>UPI or bank app opens within 15 min.</li><li>10-second pause screen.</li><li>One tap to skip if the payee is known.</li><li>Skip reason logged: known person, delivery, cab.</li></ol></div>
+      </div>
+      <div class="flow reveal d4">
+        <div class="phone family"><div class="notif"><b>Chetaka Family Alert</b><span>Amma spoke to an unknown caller for 12 min and just opened a payment app.</span><em>Tap to call her</em></div></div>
+        <div class="steps"><div class="tag accent-safe">3 · Family</div><h3>Bring family in</h3><ol>
+          <li>Risk reaches critical.</li><li>Paired family phone notified.</li><li>One tap to call back.</li><li>Opt-in per contact; no audio shared.</li></ol></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Chetaka</span><span>FinTech &amp; Commerce · Fraud prevention</span></div>
+</section>
+
+<!-- =====================================================
+     SLIDE 4 — ON-DEVICE & AI ARCHITECTURE
+     ===================================================== -->
+<section class="slide s4">
+  <header class="header">
+    <div><div class="kicker">On-device &amp; AI architecture</div><h2 class="title">Three AI tiers on the phone. Zero cloud AI calls.</h2></div>
+    <div class="pageno">05 / 10<div class="stripe"><i></i><i></i><i></i></div></div>
+  </header>
+  <div class="body">
+    <div class="flow">
+      <div class="col reveal d1">
+        <div class="colhead">Phone signals</div>
+        <div class="node"><h4>Voice · speaker only</h4><p>MediaRecorder VOICE_RECOGNITION</p></div>
+        <div class="node"><h4>Telephony</h4><p>Call state, caller, duration</p></div>
+        <div class="node"><h4>App usage</h4><p>UPI / bank app in foreground</p></div>
+      </div>
+      <div class="arrow reveal d2"><svg viewBox="0 0 24 24" fill="none" stroke="#8A92A0" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="col reveal d2">
+        <div class="colhead">Tier 0 · always on</div>
+        <div class="node t0"><div class="tag accent-sky">CPU</div><h4>Offline speech-to-text</h4><p>Android SpeechRecognizer</p></div>
+        <div class="node t0"><div class="tag accent-sky">CPU</div><h4>Rules &amp; phrases</h4><p>Unknown caller, call length, multilingual scam phrases</p></div>
+      </div>
+      <div class="arrow reveal d3"><svg viewBox="0 0 24 24" fill="none" stroke="#8A92A0" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="col reveal d3">
+        <div class="colhead">Tier 1 · risk ≥ 20</div>
+        <div class="node t1"><div class="tag accent-blue">Snapdragon NPU</div><h4>Whisper (open-source)</h4><p>Code-mixed Telugu · Hindi · English transcription [1]</p></div>
+        <div class="node t1"><div class="tag accent-blue">Snapdragon NPU</div><h4>Scam classifier</h4><p>Small transformer, LiteRT + Qualcomm NPU delegate</p></div>
+      </div>
+      <div class="arrow reveal d4"><svg viewBox="0 0 24 24" fill="none" stroke="#8A92A0" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="col reveal d4">
+        <div class="colhead">Tier 2 · risk ≥ 60</div>
+        <div class="node engine"><h4>Risk engine</h4><p>Explainable 0–100 score with reasons</p></div>
+        <div class="node t2"><div class="tag accent-red">On-device SLM <span class="stretch">stretch</span></div><h4>Gemma 3 1B</h4><p>Explains the scam tactic in the user’s language</p></div>
+      </div>
+      <div class="arrow reveal d5"><svg viewBox="0 0 24 24" fill="none" stroke="#8A92A0" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="col reveal d5">
+        <div class="colhead">Phone actions</div>
+        <div class="node t2"><h4>Alert + haptics</h4><p>Overlay over the call</p></div>
+        <div class="node t2"><h4>Payment pause</h4><p>10-second guard, one-tap skip</p></div>
+        <div class="node t2"><h4>Family alert</h4><p>Paired phone notified</p></div>
+      </div>
+    </div>
+    <div class="lower">
+      <div class="panel reveal d4">
+        <div class="label">On-device vs cloud</div>
+        <table class="vs">
+          <tr><th>Need</th><th>Chetaka on-device</th><th>Cloud API</th></tr>
+          <tr><td>Private call audio</td><td>Never leaves phone</td><td>Uploaded</td></tr>
+          <tr><td>Mid-call latency</td><td>No network hop</td><td>Network-bound</td></tr>
+          <tr><td>Weak signal areas</td><td>Works offline</td><td>Fails</td></tr>
+          <tr><td>Running cost</td><td>Zero per call</td><td>Per request</td></tr>
+        </table>
+      </div>
+      <div class="panel reveal d5">
+        <div class="label">Fallback ladder</div>
+        <ul>
+          <li><strong class="accent-sky">NPU loads:</strong> full tiers, latency shown on screen.</li>
+          <li><strong class="accent-blue">NPU fails:</strong> models on GPU or CPU.</li>
+          <li><strong>Models fail:</strong> rules + phrases; all flows still work.</li>
+        </ul>
+      </div>
+      <div class="panel reveal d6">
+        <div class="label">Phone hardware used</div>
+        <span class="chip">Snapdragon NPU</span><span class="chip">Microphone</span><span class="chip">Haptics</span><span class="chip">Telephony</span><span class="chip">Overlays</span><span class="chip">Camera · QR check</span>
+        <div class="label" style="margin-top:10px">How we get call audio</div>
+        <p style="font-size:15px;line-height:1.3;margin-top:2px">No app gets the downlink stream. We record the room on speakerphone (<code>MediaRecorder</code>, <code>VOICE_RECOGNITION</code>). <strong>AccessibilityService rejected</strong> — Play policy risk. <code>CallScreeningService</code> is metadata only, so it feeds the guard, not the transcript.</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Chetaka</span><span>FinTech &amp; Commerce · Fraud prevention</span></div>
+</section>
+
+<!-- =====================================================
+     SLIDE 6 — TECHNICAL STACK
+     ===================================================== -->
+<section class="slide s6">
+  <header class="header">
+    <div><div class="kicker">Technical stack</div><h2 class="title">Native Android. Local AI runtime. No backend for AI.</h2></div>
+    <div class="pageno">06 / 10<div class="stripe"><i></i><i></i><i></i></div></div>
+  </header>
+  <div class="body">
+    <div class="grid">
+      <div class="panel layer reveal d1">
+        <div class="tag">Mobile platform</div><h3>Native Android</h3>
+        <p>Direct access to telephony, overlays and the NPU.</p>
+        <div class="item"><b>Kotlin 2.0</b><span>Language</span></div>
+        <div class="item"><b>Jetpack Compose</b><span>UI and overlays</span></div>
+        <div class="item"><b>Coroutines + Flow</b><span>Real-time pipeline</span></div>
+        <div class="item"><b>Foreground Service</b><span>Listening during calls</span></div>
+        <div class="item"><b>minSdk 29 · targetSdk 35</b><span>Android 15 on the loaner</span></div>
+        <div class="item"><b>Android Studio + Gradle KTS</b><span>Build and profiling</span></div>
+        <div class="item"><b>JUnit + Compose UI test</b><span>Metrics harness</span></div>
+      </div>
+      <div class="panel layer reveal d2">
+        <div class="tag">Local AI runtime</div><h3>On-device models</h3>
+        <p>Open-source models, quantised for the phone.</p>
+        <div class="item"><b>LiteRT + QNN delegate</b><span>Classifier on NPU</span></div>
+        <div class="item"><b>whisper.cpp · Whisper small</b><span>Speech-to-text</span></div>
+        <div class="item"><b>MediaPipe LLM Inference</b><span>Gemma 3 1B (stretch)</span></div>
+        <div class="item"><b>SpeechRecognizer</b><span>Offline fallback</span></div>
+        <div class="item"><b>int8 quantisation</b><span>Classifier ~25 MB · Whisper ~180 MB</span></div>
+        <div class="item"><b>Gemma 3 1B int4</b><span>~550 MB, loaded only at tier 2</span></div>
+        <div class="item"><b>All weights shipped in APK</b><span>No model download at runtime</span></div>
+      </div>
+      <div class="panel layer reveal d3">
+        <div class="tag">Data &amp; services</div><h3>Local first</h3>
+        <p>Only the family alert touches the network. Office Kit mirrors the debug HUD — per-segment inference latency in ms and the live risk score — without interrupting the call.</p>
+        <div class="item"><b>Room + SQLCipher</b><span>Encrypted local store</span></div>
+        <div class="item"><b>TelephonyManager</b><span>Call state</span></div>
+        <div class="item"><b>UsageStatsManager</b><span>Payment app watch</span></div>
+        <div class="item"><b>Firebase Cloud Messaging</b><span>Family alert relay</span></div>
+        <div class="item"><b>iQOO Office Kit</b><span>Debug HUD mirrored to laptop</span></div>
+      </div>
+      <div class="panel perm reveal d5">
+        <div class="label">Android permissions — each tied to one feature</div>
+        <div class="permgrid">
+          <div><code>READ_PHONE_STATE</code>Call start and end</div>
+          <div><code>READ_CONTACTS</code>Unknown-number check</div>
+          <div><code>RECORD_AUDIO</code>Listening on speaker</div>
+          <div><code>PACKAGE_USAGE_STATS</code>Payment app detection</div>
+          <div><code>SYSTEM_ALERT_WINDOW</code>Alert and pause overlays</div>
+          <div><code>FOREGROUND_SERVICE_MICROPHONE</code>Background listening</div>
+          <div><code>POST_NOTIFICATIONS</code>Alerts on Android 13+</div>
+          <div><code>VIBRATE</code>Haptic warning</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Chetaka</span><span>FinTech &amp; Commerce · Fraud prevention</span></div>
+</section>
+
+<!-- =====================================================
+     SLIDE 7 — KEY FEATURES & INNOVATION
+     ===================================================== -->
+<section class="slide s7">
+  <header class="header">
+    <div><div class="kicker">Key features &amp; innovation</div><h2 class="title">Others protect the call. Chetaka protects the money.</h2></div>
+    <div class="pageno">07 / 10<div class="stripe"><i></i><i></i><i></i></div></div>
+  </header>
+  <div class="body">
+    <div class="grid">
+      <div class="features">
+        <div class="feat hero reveal d1">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#D22B20" stroke-width="2"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></div>
+          <h4>Payment-app guard — our core innovation</h4>
+          <p>Links a risky call to the payment app opened after it, and pauses before money moves. Content-independent, so it still works when the scam script fools a classifier [5]. Every skip is logged with a reason, so the guard learns.</p>
+        </div>
+        <div class="feat reveal d2">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#1580C4" stroke-width="2"><path d="M4 12h3l2-5 3 10 2-5h6"/></svg></div>
+          <h4>Live vernacular detection</h4><p>Telugu, Hindi and English code-mix, understood on-device mid-call.</p>
+        </div>
+        <div class="feat reveal d3">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#1580C4" stroke-width="2"><path d="M4 19h16M7 16V9M12 16V5M17 16v-4"/></svg></div>
+          <h4>Explainable risk score</h4><p>Every alert names its reason: authority, OTP request, urgency, isolation.</p>
+        </div>
+        <div class="feat reveal d4">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#1B8A50" stroke-width="2"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="10" r="2.5"/><path d="M3 20c0-3 2.5-5 5-5s5 2 5 5M13 20c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5"/></svg></div>
+          <h4>Family Shield</h4><p>Real-time alert to a trusted person. Opt-in per contact, no audio shared.</p>
+        </div>
+        <div class="feat reveal d5">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#1B8A50" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+          <h4>Private by design</h4><p>No audio stored, no server AI, one-tap delete.</p>
+        </div>
+      </div>
+      <div>
+        <table class="reveal d2">
+          <tr><th>Capability</th><th>Truecaller</th><th>Google scam detect</th><th>Bank SMS alert</th><th class="us">Chetaka</th></tr>
+          <tr><td>Judges who is calling</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="us y">Yes</td></tr>
+          <tr><td>Understands what is said</td><td class="n">No</td><td class="p">Varies</td><td class="n">No</td><td class="us y">Yes</td></tr>
+          <tr><td>Telugu · Hindi · English mix</td><td class="n">No</td><td class="n">Limited</td><td class="n">No</td><td class="us y">Yes</td></tr>
+          <tr><td>Guards payment app after call</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="us y">Yes</td></tr>
+          <tr><td>Acts before money moves</td><td class="p">Partly</td><td class="p">Partly</td><td class="n">After</td><td class="us y">Yes</td></tr>
+          <tr><td>Real-time family alert</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="us y">Yes</td></tr>
+          <tr><td>Fully on-device AI</td><td class="p">Varies</td><td class="p">Varies</td><td class="n">—</td><td class="us y">Yes</td></tr>
+        </table>
+        <div class="panel gap reveal d3"><div class="label">Research gap</div><p>Voice-phishing classifiers judge the transcript alone, and LLM-written scam scripts cut their accuracy by more than 30% [5]. Chetaka pairs AI detection with a second check at the payment step.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Chetaka</span><span>FinTech &amp; Commerce · Fraud prevention</span></div>
+</section>
+
+<!-- =====================================================
+     SLIDE 8 — HACKATHON IMPLEMENTATION PLAN
+     ===================================================== -->
+<section class="slide s8">
+  <header class="header">
+    <div><div class="kicker">Hackathon implementation plan</div><h2 class="title">A working prototype on the iQOO phone in 30 hours.</h2></div>
+    <div class="pageno">08 / 10<div class="stripe"><i></i><i></i><i></i></div></div>
+  </header>
+  <div class="body">
+    <div class="grid">
+      <div class="panel mvp reveal d1">
+        <div class="label">Minimum viable prototype</div>
+        <h3 class="accent-safe" style="font-size:24px">Must work in the demo</h3>
+        <ul class="must">
+          <li>Unknown-call detection and call log</li>
+          <li>Payment-app guard with pause + skip log</li>
+          <li>Live transcription + scam scoring</li>
+          <li>In-call alert with haptics</li>
+          <li>Family alert on a second phone</li>
+        </ul>
+        <h3 class="accent-amber" style="font-size:24px;margin-top:18px">Stretch goals</h3>
+        <ul class="nice">
+          <li>Scam classifier on the NPU, latency on screen</li>
+          <li>Gemma 3 1B explanation in Telugu / Hindi</li>
+          <li>Camera UPI-QR check</li>
+        </ul>
+      </div>
+      <div class="panel reveal d2">
+        <div class="label">30-hour build order</div>
+        <div class="row"><div class="h">0–5 h</div><p><strong>Call monitor, contact check, local store</strong></p></div>
+        <div class="row"><div class="h">5–9 h</div><p><strong>App watcher + payment pause</strong> <span>— core innovation first</span></p></div>
+        <div class="row"><div class="h">9–14 h</div><p><strong>Listening service, speech-to-text, risk engine</strong></p></div>
+        <div class="row"><div class="h">14–17 h</div><p><strong>In-call alert and haptics</strong></p></div>
+        <div class="row"><div class="h">17–20 h</div><p><strong>Family alert and pairing</strong></p></div>
+        <div class="row"><div class="h">20–24 h</div><p><strong>NPU classifier, Whisper, SLM</strong> <span>— stretch</span></p></div>
+        <div class="row"><div class="h">24–30 h</div><p><strong>Test set, polish, demo rehearsal</strong></p></div>
+      </div>
+      <div class="right">
+        <div class="panel demo reveal d3">
+          <div class="label">Live demo · 3 phones</div>
+          <ol>
+            <li>Phone B calls Phone A as "police".</li>
+            <li>Chetaka alerts mid-call on Phone A.</li>
+            <li>Repeat without speaker; Phone A opens a UPI app.</li>
+            <li>Pause screen holds the payment; skip shown.</li>
+            <li>Phone C gets the family alert; debug HUD mirrored to the companion screen via Office Kit.</li>
+          </ol>
+        </div>
+        <div class="panel reveal d4">
+          <div class="label">Honest evaluation</div>
+          <p style="font-size:17px;line-height:1.35">Measured live on scripted calls, both languages, reported as-is. Targets: <strong>recall &ge; 0.80</strong>, <strong>false positives &le; 10%</strong>, <strong>alert under 3 s</strong>. A wrong block costs more than a missed one, so the false-positive target is the hard one.</p>
+          <div class="evals"><div><b class="accent-red">20</b><span>scam calls</span></div><div><b class="accent-safe">20</b><span>normal calls</span></div><div><b class="accent-sky">3</b><span>metrics</span></div></div>
+          <p style="font-size:15px;color:var(--hint);margin-top:10px">Recall · false-positive rate · median alert latency</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Chetaka</span><span>FinTech &amp; Commerce · Fraud prevention</span></div>
+</section>
+
+<!-- =====================================================
+     SLIDE 9 — UTILITY & IMPACT
+     ===================================================== -->
+<section class="slide s9">
+  <header class="header">
+    <div><div class="kicker">Utility &amp; impact</div><h2 class="title">Buildable today. Useful to millions of families.</h2></div>
+    <div class="pageno">09 / 10<div class="stripe"><i></i><i></i><i></i></div></div>
+  </header>
+  <div class="body">
+    <div class="quad">
+      <div class="panel reveal d1">
+        <h3><span class="n">01</span>Feasibility</h3>
+        <ul>
+          <li>Every signal uses <strong>public Android APIs</strong>.</li>
+          <li>All AI models are <strong>open-source</strong>.</li>
+          <li>The core guard <strong>needs no AI model</strong>.</li>
+          <li><strong>Fallback ladder</strong> keeps flows working.</li>
+        </ul>
+      </div>
+      <div class="panel reveal d2">
+        <h3><span class="n">02</span>Benefits</h3>
+        <ul>
+          <li>Stops payment <strong>before the loss</strong>.</li>
+          <li>Payment guard works <strong>with speakerphone off</strong>.</li>
+          <li><strong>Private</strong>: nothing leaves the phone.</li>
+          <li><strong>Zero cloud cost</strong> at any scale.</li>
+        </ul>
+      </div>
+      <div class="panel users reveal d3">
+        <h3><span class="n">03</span>Target users</h3>
+        <figure class="photo" style="margin:0 0 20px"><img src="assets/upi_market.jpg" alt="Customer scanning a payment QR code at a market stall"><figcaption>UPI is how India pays</figcaption></figure>
+        <ul>
+          <li><strong>Parents at home</strong> receiving impersonation calls.</li>
+          <li><strong>First-time UPI users</strong> in tier-2, tier-3 and rural India.</li>
+          <li><strong>Adult children</strong> protecting family remotely.</li>
+          <li><strong>Partners</strong>: phone makers, banks, telcos, cyber cells.</li>
+        </ul>
+      </div>
+      <div class="panel why reveal d4">
+        <h3><span class="n">04</span>Why Chetaka should be selected</h3>
+        <div class="reasons">
+          <ul>
+            <li><strong>Practical utility</strong>: acts at the exact moment money is lost.</li>
+            <li><strong>Novel</strong>: the only approach guarding call-to-payment end to end.</li>
+          </ul>
+          <ul>
+            <li><strong>Phone-first</strong>: voice, telephony, haptics and NPU AI on-device.</li>
+            <li><strong>Feasible</strong>: model-free core first, AI tiers layered on top.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Chetaka</span><span>FinTech &amp; Commerce · Fraud prevention</span></div>
+</section>
+
+<!-- =====================================================
+     SLIDE 10 — REFERENCES
+     ===================================================== -->
+<section class="slide s10">
+  <header class="header">
+    <div><div class="kicker">References</div><h2 class="title">Research and data behind Chetaka.</h2></div>
+    <div class="pageno">10 / 10<div class="stripe"><i></i><i></i><i></i></div></div>
+  </header>
+  <div class="body" style="bottom:210px">
+    <div class="refs reveal d1">
+      <div class="ref"><div class="i">[1]</div><p>Radford, A., Kim, J. W., Xu, T., Brockman, G., McLeavey, C., &amp; Sutskever, I. (2023). <em>Robust speech recognition via large-scale weak supervision.</em> Proceedings of the 40th International Conference on Machine Learning (ICML), PMLR 202.<a class="link" href="https://proceedings.mlr.press/v202/radford23a.html" target="_blank" rel="noopener">Open source</a></p></div>
+      <div class="ref"><div class="i">[2]</div><p>He, Y., Sainath, T. N., Prabhavalkar, R., McGraw, I., Alvarez, R., et al. (2018). <em>Streaming end-to-end speech recognition for mobile devices.</em> arXiv:1811.06621.<a class="link" href="https://arxiv.org/abs/1811.06621" target="_blank" rel="noopener">Open source</a></p></div>
+      <div class="ref"><div class="i">[3]</div><p>Kim, K., Lee, K., Gowda, D., Park, J., Kim, S., et al. (2019). <em>Attention based on-device streaming speech recognition with large speech corpus.</em> IEEE ASRU 2019. arXiv:2001.00577.<a class="link" href="https://arxiv.org/abs/2001.00577" target="_blank" rel="noopener">Open source</a></p></div>
+      <div class="ref"><div class="i">[4]</div><p>Shang, Y., Wu, Z., Du, X., Jiang, Y., Ma, B., &amp; Chi, M. (2022). <em>The psychology of the internet fraud victimization of older adults: A systematic review.</em> Frontiers in Psychology, 13, 912242.<span class="doi">doi.org/10.3389/fpsyg.2022.912242</span><a class="link" href="https://doi.org/10.3389/fpsyg.2022.912242" target="_blank" rel="noopener">Open source</a></p></div>
+      <div class="ref"><div class="i">[5]</div><p>Li, W., Manickam, S., Chong, Y.-W., &amp; Karuppayah, S. (2025). <em>Talking like a phisher: LLM-based attacks on voice phishing classifiers.</em> EAI ICDF2C 2025. arXiv:2507.16291.<a class="link" href="https://arxiv.org/abs/2507.16291" target="_blank" rel="noopener">Open source</a></p></div>
+      <div class="ref"><div class="i">[6]</div><p>Han, S. D., Barnes, L. L., Leurgans, S., Yu, L., Stewart, C. C., Lamar, M., Glover, C. M., Bennett, D. A., &amp; Boyle, P. A. (2021). <em>Susceptibility to scams in older Black and White adults.</em> Frontiers in Psychology, 12, 685258.<span class="doi">doi.org/10.3389/fpsyg.2021.685258</span><a class="link" href="https://doi.org/10.3389/fpsyg.2021.685258" target="_blank" rel="noopener">Open source</a></p></div>
+      <div class="ref"><div class="i">[7]</div><p>Chetry, S. (2026, July 18). <em>Digital arrest scams and the limits of domestic enforcement.</em> Observer Research Foundation, Expert Speak.<a class="link" href="https://www.orfonline.org/expert-speak/digital-arrest-scams-and-the-limits-of-domestic-enforcement" target="_blank" rel="noopener">Open source</a></p></div>
+      <div class="ref"><div class="i">[8]</div><p>NITI Aayog. (2025). <em>Digital arrest: The modern day cyber scam.</em> Government of India.<a class="link" href="https://www.niti.gov.in/sites/default/files/2025-04/Digital_Arrest_The_Modern_Day_Cyber_Scam.pdf" target="_blank" rel="noopener">Open source</a></p></div>
+      <div class="ref"><div class="i">[9]</div><p>The Federal. (2026, May 25). <em>Bengaluru digital arrest scam: Elderly woman loses Rs 24 crore, six held.</em><a class="link" href="https://thefederal.com/category/states/south/karnataka/bengaluru-digital-arrest-scam-elderly-woman-duped-of-rs-24-cr-cyber-police-arrest-six-244311" target="_blank" rel="noopener">Open source</a></p></div>
+    </div>
+  </div>
+  <div class="thanks reveal d3"><div class="stripe" style="margin-left:auto;margin-bottom:18px"><i></i><i></i><i></i></div><div style="font-family:var(--display);font-weight:800;font-size:56px">Thank you</div><div class="label" style="margin-top:8px">Chetaka · The scam shield that follows the call</div></div>
+  <div class="footer"><span>Chetaka</span><span>FinTech &amp; Commerce · Fraud prevention</span></div>
+</section>
+
+</div>
+</div>
+<div class="deck-controls" id="controls">← → navigate · E edit · F fullscreen</div>
+
+<script>
+/* ===========================================
+   DECK CONTROLLER
+   Fits the 1920×1080 stage, handles navigation,
+   progress, and inline edit mode.
+   =========================================== */
+(() => {
+  const stage = document.getElementById('stage');
+  const slides = [...document.querySelectorAll('.slide')];
+  const progress = document.getElementById('progress');
+  let index = 0;
+
+  function fit() {
+    const scale = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = `translate(${(innerWidth - 1920 * scale) / 2}px, ${(innerHeight - 1080 * scale) / 2}px) scale(${scale})`;
+  }
+
+  function show(next) {
+    index = Math.max(0, Math.min(slides.length - 1, next));
+    slides.forEach((slide, i) => {
+      slide.classList.toggle('active', i === index);
+      slide.classList.toggle('visible', i === index);
+    });
+    progress.style.width = `${((index + 1) / slides.length) * 100}%`;
+    history.replaceState(null, '', `#${index + 1}`);
+  }
+
+  function setEditing(on) {
+    document.body.classList.toggle('editing', on);
+    slides.forEach(slide => slide.querySelectorAll('h1,h2,h3,h4,p,li,b,span,div.label,div.kicker,div.tag,figcaption,td,th,code')
+      .forEach(el => { el.contentEditable = on ? 'true' : 'false'; }));
+    if (!on && document.activeElement) document.activeElement.blur();
+  }
+
+  function save() {
+    setEditing(false);
+    const clone = document.documentElement.cloneNode(true);
+    clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    const blob = new Blob(['<!DOCTYPE html>\n' + clone.outerHTML], { type: 'text/html' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'chetaka_deck.html';
+    link.click();
+  }
+
+  addEventListener('keydown', event => {
+    const editing = document.body.classList.contains('editing');
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); save(); return; }
+    if (editing) { if (event.key === 'Escape') setEditing(false); return; }
+    if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(event.key)) { event.preventDefault(); show(index + 1); }
+    if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(event.key)) { event.preventDefault(); show(index - 1); }
+    if (event.key === 'Home') show(0);
+    if (event.key === 'End') show(slides.length - 1);
+    if (event.key.toLowerCase() === 'e') setEditing(true);
+    if (event.key.toLowerCase() === 'f') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  });
+
+  let touchX = null;
+  addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+  addEventListener('touchend', e => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) show(index + (dx < 0 ? 1 : -1));
+    touchX = null;
+  });
+
+  addEventListener('resize', fit);
+  fit();
+  show(Math.max(0, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+})();
+</script>
+</body>
+</html>

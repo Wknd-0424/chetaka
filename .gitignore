@@ -1,0 +1,13 @@
+.env
+**/.env
+video/build/
+video/generate.log
+
+# Build scratch and generated intermediates
+deck/build/
+video/build_vertical/
+video/media/
+video/*.log
+
+# Large raw renders — final cuts only
+video/chetaka_concept_30s.mp4
