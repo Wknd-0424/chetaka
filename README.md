@@ -9,6 +9,8 @@ afterwards, before any money moves.
 
 Built for the iQOO Hackathon 2026, Hyderabad City Battle (FinTech & Commerce).
 
+**Concept walkthrough:** https://www.youtube.com/shorts/PvC_-DxLrbk
+
 ---
 
 ## The problem
