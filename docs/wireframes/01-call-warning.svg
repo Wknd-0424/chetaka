@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 760" width="380" height="760" font-family="Segoe UI, Roboto, sans-serif">
+  <rect width="380" height="760" rx="34" fill="#12161C"/>
+  <rect x="8" y="8" width="364" height="744" rx="28" fill="#1A1F27"/>
+  <text x="26" y="42" fill="#7C8798" font-size="12" font-family="Consolas, monospace">09:41</text>
+  <text x="330" y="42" fill="#7C8798" font-size="12" font-family="Consolas, monospace">4G</text>
+
+  <text x="190" y="96" fill="#8D97A6" font-size="13" text-anchor="middle">Incoming call &#183; 14:22</text>
+  <text x="190" y="128" fill="#FFFFFF" font-size="24" font-weight="600" text-anchor="middle">+91 80 4712 9930</text>
+  <text x="190" y="152" fill="#8D97A6" font-size="13" text-anchor="middle">Not in your contacts</text>
+
+  <rect x="24" y="186" width="332" height="300" rx="20" fill="#D22B20"/>
+  <circle cx="190" cy="236" r="26" fill="#FFFFFF" opacity="0.16"/>
+  <text x="190" y="248" fill="#FFFFFF" font-size="30" font-weight="700" text-anchor="middle">!</text>
+  <text x="190" y="296" fill="#FFFFFF" font-size="25" font-weight="700" text-anchor="middle">This looks like a scam</text>
+  <text x="190" y="324" fill="#FFE2E0" font-size="15" text-anchor="middle">Risk score 82 / 100</text>
+
+  <line x1="52" y1="346" x2="328" y2="346" stroke="#FFFFFF" opacity="0.25"/>
+  <text x="52" y="374" fill="#FFFFFF" font-size="14">&#8226; Caller claims to be from the police</text>
+  <text x="52" y="400" fill="#FFFFFF" font-size="14">&#8226; Asked you to keep this secret</text>
+  <text x="52" y="426" fill="#FFFFFF" font-size="14">&#8226; Asked for an OTP</text>
+  <text x="52" y="452" fill="#FFFFFF" font-size="14">&#8226; Urgency: &#8220;within 30 minutes&#8221;</text>
+
+  <rect x="24" y="506" width="332" height="58" rx="16" fill="#1F2630" stroke="#39424F"/>
+  <text x="190" y="542" fill="#C7D0DC" font-size="15" text-anchor="middle">Real police never ask for an OTP</text>
+
+  <rect x="24" y="584" width="160" height="60" rx="16" fill="#FFFFFF"/>
+  <text x="104" y="621" fill="#12161C" font-size="16" font-weight="600" text-anchor="middle">End call</text>
+  <rect x="196" y="584" width="160" height="60" rx="16" fill="#2A3340"/>
+  <text x="276" y="621" fill="#C7D0DC" font-size="16" text-anchor="middle">Dismiss</text>
+
+  <text x="190" y="690" fill="#6E7888" font-size="12" text-anchor="middle">Chetaka &#183; detected on this phone</text>
+  <text x="190" y="712" fill="#6E7888" font-size="12" text-anchor="middle">No audio left your device</text>
+</svg>
